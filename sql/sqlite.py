@@ -171,6 +171,7 @@ class sqlite:
         #return code
         self.cursor.execute(code)
         returned = self.cursor.fetchall()
+        """
         if len(returned):
             if len(returned) == 1:
                 if len(returned[0]) == 1:
@@ -181,6 +182,7 @@ class sqlite:
                 for i in range(len(returned)):
                     ret.append(returned[i][0])
                 return tuple(ret)
+        """
         return returned
 
     def distinct(self, database, table, field, where = {}, order_by = None):

@@ -84,6 +84,8 @@ def open_table(master, table_item):
 
 
 def _tree_widget(master, sql, **kwargs):
+    global s, sc, item, node
+    s = sql
     if not master:
         root = Tk()
     else:
