@@ -77,8 +77,8 @@ def open_table(master, table_item):
     top.bind_wheel = FilterTable.bind_wheel
     table = FilterTable.FilterTable(top, columns)
     array = sql.select(db, tbl, "*")
-    table.pack(expand = 1, fill = "both")
     table.create_grid(30)
+    table.pack(expand = 1, fill = "both")
     table.set_array(array, sql.py_types(types))
     table.update_grid()
 
@@ -100,6 +100,7 @@ def _tree_widget(master, sql, **kwargs):
     item = SqlTreeItem(sql)
     node = TreeNode(sc.canvas, None, item)
     node.expand()
+    root.wm_title("%s - %s" % (sql.__class__.__name__, item.GetText()))
     #root.mainloop()
 
 

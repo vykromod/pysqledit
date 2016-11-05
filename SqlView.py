@@ -17,6 +17,7 @@ class EntryObj(Entry):
 class SqlConnect(Frame):
     support = ["mysql", "mssql", "sqlite"]
     def __init__(self, master, **kwargs):
+        self.input = {}
         self.master = master
         self.kwargs = kwargs
         Frame.__init__(self, master)
@@ -27,7 +28,7 @@ class SqlConnect(Frame):
         for txt in self.support:
             b = Button(self, text = txt)
             b.bind("<Button-1>", self.get_sqlmod)
-            b.pack(side = "left")
+            b.pack()#side = "left")
             self.buttons.append(b)
 
     def get_sqlmod(self, evt):
@@ -38,24 +39,34 @@ class SqlConnect(Frame):
         exec(code, evt)
         print(evt["sql"])
         self.sqlmod = evt["sql"]
-        for button in self.buttons:
-            button.destroy()
-        self.winfo_toplevel().wm_title("%s connector mk1" % name)
-        self.build_entries()
+        self.build_entries(name)
         
 
-
-    def build_entries(self):
-        self.entries = Frame(self)
-        for i in range(len(self.sqlmod.connect_keys)):
-            txt = self.sqlmod.connect_keys[i]
-            label = Label(self.entries, text=txt)
-            entry = EntryObj(self.entries, txt) 
-            label.grid(row = i, column = 0)
-            entry.grid(row = i, column = 1)
-        self.button = Button(self.entries, text="Connect", command=self.connect)
-        self.button.grid(row = i+1, column = 0)
-        self.entries.pack()
+    entries = None
+    label = None
+    def build_entries(self, name):
+        
+        entries = self.input.get(name, None)
+        if not entries:
+            entries = Frame(self)
+            entries.label = Label(entries, text = name)
+            entries.label.grid(row=0,column=0)
+            
+            self.input[name] = entries
+            for i in range(len(self.sqlmod.connect_keys)):
+                txt = self.sqlmod.connect_keys[i]
+                label = Label(entries, text=txt)
+                entry = EntryObj(entries, txt) 
+                label.grid(row = i + 1, column = 0)
+                entry.grid(row = i + 1, column = 1)
+            self.button = Button(entries, text="Connect", command=self.connect)
+            self.button.grid(row = i+2, column = 0)
+            entries.pack()
+        for entryframe in self.input.values():
+            if entryframe != entries:
+                entryframe.pack_forget()
+        entries.pack()
+        self.entries = entries
 
     def collect(self):
         dic = {}
@@ -86,6 +97,7 @@ def main():
     root.wm_title("SQL connect mk1")
     sc = SqlConnect(root)
     sc.pack(fill = "both", expand = 1)
+    #root.mainloop()
 
 
 if __name__ == "__main__":
