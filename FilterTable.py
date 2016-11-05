@@ -2,7 +2,7 @@ try:
     import tkinter as Tkinter ##python 3.x.x
 except ImportError:
     import Tkinter ##python 2.x.x
-
+import sys
 
 class Entry(Tkinter.Entry):
     def __init__(self, is_column, info_grid, master, **cnf):
@@ -78,11 +78,11 @@ class Entry(Tkinter.Entry):
     def on_click(self, event):
         if self.info_grid: #hasattr(self.master.master.master, "select_row"):
             row = int(self.grid_info()["row"])
-            self.master.master.master.select_row(row)
+            self.info_grid.select_row(row)
 
     def on_doubleclick(self, event):
         if self.info_grid: #hasattr(self.master.master.master, "activate_row"):
-            self.master.master.master.activate_row()
+            self.info_grid.activate_row()
 
 class Resizer(Tkinter.Frame):
     def __init__(self, info_grid, master, **cnf):
@@ -371,19 +371,38 @@ class FilterTable(Tkinter.Frame):
         self.columns = columns
         Tkinter.Frame.__init__(self, master, **cnf)
         self.selected = None
-        self.create_frames()
+        self.create_table()
+        self.create_top()
+        self.create_main()
+        self.bind("<Configure>", self.configure_event)
+        self.bind("<Map>", self.map_event)
+
+    def create_table(self):
+        self.vscroll = vscroll = Tkinter.Scrollbar(self)
+        self.hscroll = hscroll = Tkinter.Scrollbar(self, orient = "h")
+        self.table = table = Tkinter.Frame(self)
+        vscroll.grid(row = 0, column = 1, sticky = "nse")
+        hscroll.grid(row = 1, column = 0, sticky = "ews")
+        table.grid(row = 0, column = 0, sticky ="nsew")
+        self.grid_columnconfigure(0, weight = 1)
+        self.grid_rowconfigure(0, weight = 1)
+        self.vscroll["command"] = self.yview
+        self.hscroll["command"] = self.xview
+        self.scrollframe = Tkinter.Frame(self.table)
+        self.scrollframe.place(in_ = table, x = 0, y = 0)
 
     def create_frames(self):
         self.create_top()
         self.create_main()
 
     def create_top(self):
-        self.top = top = Tkinter.Frame(self, bg = "#BBBBBB")
+        self.top = top = Tkinter.Frame(self.scrollframe, bg = "#BBBBBB")
         columns = self.columns
         for i in range(len(columns)):
             name = columns[i]
             self.add_column(name, top)
         top.pack(fill = "both")
+        #top.place(x = 0, y = 0)
 
     def add_column(self, name, top):
         col = Tkinter.Frame(top)
@@ -406,24 +425,17 @@ class FilterTable(Tkinter.Frame):
     
 
     def create_main(self):
-        self.main = main = Tkinter.Frame(self)
+        self.main = main = Tkinter.Frame(self.scrollframe)
         try:
             self.winfo_toplevel().bind_wheel(main, self.on_wheel)
         except:
             print("couldn't bind wheel")
         main.pack(fill = "both")
-        self.vscroll = vscroll = Tkinter.Scrollbar(main)
-        self.hscroll = hscroll = Tkinter.Scrollbar(main, orient = "h")
+        #main.place(x = 0, y = self.top.winfo_height() + 2)
+        
         self._grid = grid = Tkinter.Frame(main, bg = "#BBBBBB")
-        grid.grid(row = 0, column = 0, sticky = "nsew")
-        vscroll.grid(row = 0, column = 1, sticky = "nse")
-        hscroll.grid(row = 1, column = 0, sticky = "ews")
-
-        main.grid_columnconfigure(0, weight = 1)
-        main.grid_rowconfigure(0, weight = 1)
-
-        self.vscroll["command"] = self.yview
-        self.hscroll["command"] = self.xview
+        #grid.grid(row = 0, column = 0, sticky = "nsew")
+        grid.pack()
         #self.canvas["yscrollcommand"] = self.vscroll.set
         #self.canvas["xscrollcommand"] = self.hscroll.set
         grid.bind('<Button-1>', self.on_grid_click)
@@ -458,17 +470,28 @@ class FilterTable(Tkinter.Frame):
 
     def on_wheel(self, event):
         #print event.__dict__
+        total = len(self.array)
+        pagesize = len(self.grid_array)
+        if pagesize > total:
+            return
+        offset = self.yscroll_offset
         if event.delta > 0:
-            self.yscroll_offset -= event.delta / 120 * 3
-            if self.yscroll_offset < 0:
-                self.yscroll_offset = 0
+            offset -= event.delta / 120 * 3
+            if offset < 0:
+                offset = 0
         if event.delta < 0:
-            self.yscroll_offset -= event.delta /120 * 3
+            offset -= event.delta /120 * 3
             total = len(self.array)
-            if self.yscroll_offset > total:
-                self.yscroll_offset = total
+            if offset > total:
+                offset = total
+        #print(total, pagesize, offset)
+        if offset + pagesize > total:
+            offset = total - pagesize
+        self.yscroll_offset = offset
         self.update_grid()
         self.yscrollcommand()
+
+        
     yscroll_offset = 0
     def yscrollcommand(self):
         total = len(self.array) or 1
@@ -491,7 +514,6 @@ class FilterTable(Tkinter.Frame):
             what = args[2]
             ammount = int(args[1])
             if what == "pages":
-                
                 self.yscroll_offset += ammount * pagesize
             elif what == "units":
                 self.yscroll_offset += ammount
@@ -502,8 +524,65 @@ class FilterTable(Tkinter.Frame):
         self.update_grid()
         self.yscrollcommand()
 
-    def xview(self, args):
-        pass#print args
+        
+    xscroll_offset = 0
+    def xscrollcommand(self):
+        #print("xscrollcommand")
+        visible = self.bbox(column = 0, row = 0)[2]
+        total = self.scrollframe.winfo_width()
+        offset = self.xscroll_offset
+        if not offset:
+            upper = 0.0
+        else:
+            upper = offset / float(total)
+        lower = upper + visible / float(total)
+        #print upper, lower
+        self.hscroll.set(upper, lower)
+        
+
+    def xview(self, *args):
+        #print("xview %s" % str(args))
+        visible = self.bbox(column = 0, row = 0)[2]
+        total = self.scrollframe.winfo_width()
+        offset = self.xscroll_offset
+        #print(total, visible, offset, sep = " - ")
+
+
+        if args[0] == "moveto":
+            self.xscroll_offset = int(total * float(args[1]))
+        if args[0] == "scroll":
+            what = args[2]
+            ammount = int(args[1])
+            if what == "pages":
+                
+                self.xscroll_offset += ammount * visible
+            elif what == "units":
+                self.xscroll_offset += ammount * 10
+        if self.xscroll_offset < 0:
+            self.xscroll_offset = 0
+        if self.xscroll_offset > total - visible:
+            self.xscroll_offset = total - visible
+
+        if offset != self.xscroll_offset:
+            #self.scrollframe.place_forget()
+            self.scrollframe.place(in_ = self.table, x = -self.xscroll_offset)
+
+            
+        
+        self.xscrollcommand()
+    startup_configured = False
+    def map_event(self, evt):
+        if not self.startup_configured:
+            if isinstance(self.master, (Tkinter.Tk, Tkinter.Toplevel)):
+                w = self.scrollframe.winfo_width() + 20
+                h = self.scrollframe.winfo_height() + 20
+                self.master.wm_geometry("%ix%i" % (w, h))
+            self.startup_configured = True
+    
+    def configure_event(self, evt):
+        #print("configure", evt)
+        self.update()
+        self.xscrollcommand()
         
     bgcolor0 = "#FFFFFF"
     bgcolor1 = "#DDDDDD"
@@ -553,9 +632,13 @@ class FilterTable(Tkinter.Frame):
                 entry = row[j]
                 if not color_only:
                     try:
-                        entry.set(str(self.array[i + int(self.yscroll_offset)][j]))
+                        value = self.array[i + int(self.yscroll_offset)][j]
                     except IndexError:
-                        entry.clear()
+                        value = None
+                    if value == None:
+                        entry.set("")
+                    else:
+                        entry.set(str(value))
                 if i + self.yscroll_offset == self.selected:
                     entry["bg"] = self.selbgcolor
                     entry["readonlybackground"] = self.selbgcolor
@@ -624,14 +707,17 @@ if __name__ == "__main__":
     root.bind_wheel = bind_wheel
     root.bind("<MouseWheel>", on_mouse_wheel)
     t = FilterTable(root, [])
-    for i in range(10):
+
+    columnsno = 20
+    
+    for i in range(columnsno):
         t.add_column("column %i" % i, t.top)
-    t.pack(expand=1, fill = "both")
+    
 
     a = []
-    for i in range(100000):
+    for i in range(1000):
         a.append([])
-        for j in range(10):
+        for j in range(columnsno):
             if j == 0:
                 a[i].append(i)
             else:
@@ -639,6 +725,7 @@ if __name__ == "__main__":
     t.set_array(a)
     t.create_grid(25)
     t.update_grid()
+    t.pack(expand=1, fill = "both")
 
 
     ##Tkinter.mainloop()  #Enable this if not running on idle on python 3
