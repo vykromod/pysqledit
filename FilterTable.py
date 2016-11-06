@@ -443,7 +443,7 @@ class FilterTable(Tkinter.Frame):
 
 
     def on_grid_click(self, event):
-        row = self.grid.grid_location(event.x, event.y)[1]
+        row = self._grid.grid_location(event.x, event.y)[1]
         self.select_row(row)
         return "break"
 

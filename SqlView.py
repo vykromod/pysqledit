@@ -15,7 +15,7 @@ class EntryObj(Entry):
             self.config(show = "*")
 
 class SqlConnect(Frame):
-    support = ["mysql", "mssql", "sqlite"]
+    support = ["mysql", "mssql", "sqlite", "pgsql"]
     def __init__(self, master, **kwargs):
         self.input = {}
         self.master = master
