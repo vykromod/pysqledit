@@ -25,11 +25,15 @@ class SqlConnect(Frame):
 
     def build(self):
         self.buttons = []
+        self.buttonframe = Frame(self)
+        i = 0
         for txt in self.support:
-            b = Button(self, text = txt)
+            b = Button(self.buttonframe, text = txt)
             b.bind("<Button-1>", self.get_sqlmod)
-            b.pack()#side = "left")
+            b.grid(row = 0, column = i, sticky = "we")
             self.buttons.append(b)
+            i += 1
+        self.buttonframe.pack(fill = "x")
 
     def get_sqlmod(self, evt):
         ##print(evt.__dict__)
@@ -37,7 +41,7 @@ class SqlConnect(Frame):
         evt = {}
         code = "from sql import %s as sql" % name
         exec(code, evt)
-        print(evt["sql"])
+        print("loaded:", evt["sql"])
         self.sqlmod = evt["sql"]
         self.build_entries(name)
         
@@ -49,7 +53,7 @@ class SqlConnect(Frame):
         entries = self.input.get(name, None)
         if not entries:
             entries = Frame(self)
-            entries.label = Label(entries, text = name)
+            entries.label = Label(entries, text = name, font = "15")
             entries.label.grid(row=0,column=0)
             
             self.input[name] = entries

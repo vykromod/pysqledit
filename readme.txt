@@ -12,6 +12,9 @@ Dependancies:
 
 History:
 
+Version 0.1.5
+Modified SqlConnect widget
+
 Version 0.1.4
 Supports MSSQL, MySQL, SQLite and postgreSQL - read only
 

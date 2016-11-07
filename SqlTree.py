@@ -1,6 +1,8 @@
 
 from idlelib.TreeWidget import *
 
+
+
 class SqlTreeItem(TreeItem):
     sublist = None
     def __init__(self, sql):
@@ -35,7 +37,10 @@ class SqlDbItem(TreeItem):
         return self.name
     
     def IsExpandable(self):
-        return 1
+        count = 0
+        for tbl in self.master.sql.tables(self.name):
+            count += 1
+        return count
 
     def GetSubList(self):
         sublist = []
@@ -82,6 +87,15 @@ def open_table(master, table_item):
     table.set_array(array, sql.py_types(types))
     table.update_grid()
 
+_delta_mod = 20.0
+def _on_canvas_wheel(evt):
+    global canv
+    canv = evt.widget
+    top, bottom = canv.sc.vbar.get()
+    size = bottom - top
+    if size == 1.0:
+        return
+    canv.yview("scroll", - int(evt.delta/_delta_mod), "units")
 
 def _tree_widget(master, sql, **kwargs):
     global s, sc, item, node
@@ -102,10 +116,13 @@ def _tree_widget(master, sql, **kwargs):
     node.expand()
     root.wm_title("%s - %s" % (sql.__class__.__name__, item.GetText()))
     #root.mainloop()
-
+    #this wheel binding doesn't work if widget in canvas is focused
+    sc.canvas.bind("<MouseWheel>", _on_canvas_wheel)
+    sc.canvas.sc = sc
 
 if __name__ == "__main__":
     from sql import mssql
     #from sql import mysql
-    
-    _tree_widget(None, mssql.sql(server=r"WS2008DEV2\SQLEXPRESS"))
+    from sql import pgsql
+    _tree_widget(None, pgsql.sql(host = "192.168.1.13", user = "postgres"))
+    #_tree_widget(None, mssql.sql(server=r"WS2008DEV2\SQLEXPRESS"))
